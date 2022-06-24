@@ -70,6 +70,16 @@ class YCSpider:
                     self.info(courseResourceId)
                 else:
                     print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
+            userFosterSchemeTermCourseVOListNotStart = res.json()['data']['processList'][1]['userFosterSchemeTermCourseVOList']
+            for userFosterSchemeTermCourseVO in userFosterSchemeTermCourseVOListNotStart:
+                print('*' * 100)
+                # 获取到课程id
+                courseResourceId = userFosterSchemeTermCourseVO['courseResourceId']
+                print(f"课程名称： {userFosterSchemeTermCourseVO['courseName']}")
+                courseResourceBeginTime = userFosterSchemeTermCourseVO['courseResourceBeginTime']
+                courseResourceBeginTime_str = time.mktime(time.strptime(courseResourceBeginTime, "%Y-%m-%d %H:%M:%S"))
+                if courseResourceBeginTime_str < time.time():
+                    self.info(courseResourceId)
             pika.lpush('yc_account_file',json.dumps(self.account))
         except:
             self.overview()
@@ -125,7 +135,7 @@ class YCSpider:
 
     def start(self,task_data):
         url = 'https://yk.myunedu.com/yunkai/web/examPaper/start'
-        res = requests.post(url, headers=self.headers, data=json.dumps(task_data))
+        res = requests.post(url, headers=self.headers, data=json.dumps(task_data),timeout=30)
         testUserId = res.json()['data']['testUserId']
         questionAnswers = []
         groups = res.json()['data']['groups']
