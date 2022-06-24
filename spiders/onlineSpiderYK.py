@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 '''
 @Author : huangrenwu
-@File: onlineSpider.py
+@File: onlineSpiderYK.py
 @Time: 2022/6/24 11:37
 @Email: leo.r.huang@microcore.tech
 @Desc: 
@@ -70,7 +70,7 @@ class YCSpider:
                     self.info(courseResourceId)
                 else:
                     print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
-            pika.lpush('yc_account_done',self.account)
+            pika.lpush('yc_account_file',self.account)
         except:
             self.overview()
 
@@ -98,7 +98,7 @@ class YCSpider:
                     self.getVideoInfo(id, lastStudyTime)
             self.task_list(courseResourceId)
         except:
-            self.info()
+            self.info(courseResourceId)
 
     def task_list(self,courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/web/student/task/list'
