@@ -14,7 +14,7 @@ pika = redis.Redis(host='47.108.199.19',port=8379,password='spider666.',db=4)
 xlsx_file = xlrd2.open_workbook('C:/Users/huangrenwu/Desktop/account.xlsx')
 sheetOne = xlsx_file.sheets()[0]
 for x in range(1,sheetOne.nrows):
-    account = sheetOne.cell(x,9).value
+    account = sheetOne.cell(x,4).value
     item = {
         "account": account,
         "passwd": "KF123456"

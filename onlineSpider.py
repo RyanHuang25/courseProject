@@ -18,8 +18,8 @@ class YCSpider:
         self.passwd = 'KF123456'
         while True:
             print('='*100)
-            account = pika.rpop('yc_account')
-            self.userName = json.loads(account)['account']
+            self.account = pika.rpop('yc_account')
+            self.userName = json.loads(self.account)['account']
             self.login()
 
     def login(self):
@@ -70,6 +70,7 @@ class YCSpider:
                     self.info(courseResourceId)
                 else:
                     print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
+            pika.lpush('yc_account_done',self.account)
         except:
             self.overview()
 
