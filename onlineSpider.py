@@ -1,21 +1,25 @@
 # -*- coding: utf8 -*-
 '''
-@Author: huangrenwu
-@File: ycSpider.py
-@Time: 2022/6/17 00:02
+@Author : huangrenwu
+@File: onlineSpider.py
+@Time: 2022/6/24 11:37
 @Email: leo.r.huang@microcore.tech
+@Desc: 
 '''
 
-import requests,json,time
+
+import requests,json,time,redis
+
+pika = redis.Redis(host='47.108.199.19',port=8379,password='spider666.',db=4)
 
 class YCSpider:
 
     def __init__(self):
-        self.user_list = ['350623199003231014','350521198201106019','350221198009210039','350625198709111522','350204198112137013','350823198806162629']
         self.passwd = 'KF123456'
-        for user in self.user_list:
+        while True:
             print('='*100)
-            self.userName = user
+            account = pika.rpop('yc_account')
+            self.userName = json.loads(account)['account']
             self.login()
 
     def login(self):
@@ -249,3 +253,4 @@ class YCSpider:
             self.addVideoTime(data)
 
 YCSpider()
+
