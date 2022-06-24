@@ -70,7 +70,7 @@ class YCSpider:
                     self.info(courseResourceId)
                 else:
                     print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
-            pika.lpush('yc_account_file',self.account)
+            pika.lpush('yc_account_file',json.dumps(self.account))
         except:
             self.overview()
 
