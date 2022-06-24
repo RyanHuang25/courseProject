@@ -235,7 +235,7 @@ class YCSpider:
                     "videoType": 1
                 }
                 self.addVideoTime(addVideoTime_data)
-                print(f"视频进度: {str(int(lastStudyTime / duration * 100))}%")
+                print(f"视频进度: {str(lastStudyTime / duration * 100)[:5]}%")
         except:
             self.getVideoInfo(id, lastStudyTime)
 
