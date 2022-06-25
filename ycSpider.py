@@ -11,7 +11,7 @@ import requests,json,time
 class YCSpider:
 
     def __init__(self):
-        self.user_list = ['350623199003231014','350521198201106019','350221198009210039','350625198709111522','350204198112137013','350823198806162629']
+        self.user_list = ['350623199309053011','350521198201106019','350221198009210039','350625198709111522','350204198112137013','350823198806162629']
         self.passwd = 'KF123456'
         for user in self.user_list:
             print('='*100)
@@ -63,11 +63,69 @@ class YCSpider:
                 courseResourceEndTime = userFosterSchemeTermCourseVO['courseResourceEndTime']
                 courseResourceEndTime_str = time.mktime(time.strptime(courseResourceEndTime,"%Y-%m-%d %H:%M:%S"))
                 if courseResourceEndTime_str > time.time():
-                    self.info(courseResourceId)
+                    self.liveLessons(courseResourceId)
+                    # self.info(courseResourceId)
                 else:
                     print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
         except:
             self.overview()
+
+    def liveLessons(self,courseResourceId):
+        url = 'https://yk.myunedu.com/yunkai/web/study/liveLessons'
+        data = {
+            "id": courseResourceId
+        }
+        try:
+            res = requests.post(url,headers=self.headers,data=json.dumps(data))
+            data_list = res.json()['data']
+            for data in data_list:
+                if data['liveStatusStr'] == '已结束':
+                    lastStudyTime = 0
+                    print(f'正在观看直播：{data["name"]}')
+                    id = data['id']
+                    videoId = data['videoId']
+                    duration = data['duration']
+                    channelId = data['channelId']
+                    sessionId = data['sessionId']
+                    self.Baijiayun(channelId,sessionId)
+                    url = 'https://yk.myunedu.com/yunkai/web/study/getBaijiayunPlayBackToken'
+                    data = {
+                        "channelId": channelId,
+                        "sessionId": sessionId
+                    }
+                    res = requests.post(url,headers=self.headers,data=json.dumps(data))
+
+                    while lastStudyTime != duration:
+                        # time.sleep()
+                        lastStudyTime += 10
+                        if lastStudyTime > duration:
+                            lastStudyTime = duration
+                        addVideoProgress_data = {
+                            "lastStudyTime": lastStudyTime,
+                            "videoId": id
+                        }
+                        self.addVideoProgress(addVideoProgress_data)
+                        addVideoTime_data = {
+                            "appType": 3,
+                            "lastStudyTime": lastStudyTime,
+                            "localCreateTime": int(time.time() * 1000),
+                            "studyTime": 10,
+                            "uploadType": 1,
+                            "videoId": id,
+                        }
+                        self.addVideoTime(addVideoTime_data)
+                        print(f"视频进度: {str(lastStudyTime / duration * 100)[:5]}%")
+        except:
+            self.liveLessons(courseResourceId)
+
+    def Baijiayun(self,channelId,sessionId):
+        url = 'https://yk.myunedu.com/yunkai/web/study/getBaijiayunChannelLiveStatus'
+        data = {"channelId":channelId}
+        res = requests.post(url,headers=self.headers,data=json.dumps(data))
+
+        url = 'https://yk.myunedu.com/yunkai/web/study/getBaijiayunPlayBackToken'
+        data = {"channelId":channelId,"sessionId":sessionId}
+        res = requests.post(url, headers=self.headers, data=json.dumps(data))
 
     def info(self, courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/student/score/info'
@@ -93,7 +151,7 @@ class YCSpider:
                     self.getVideoInfo(id, lastStudyTime)
             self.task_list(courseResourceId)
         except:
-            self.info()
+            self.info(courseResourceId)
 
     def task_list(self,courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/web/student/task/list'
@@ -247,5 +305,6 @@ class YCSpider:
             res = requests.post(url, headers=self.headers, data=json.dumps(data))
         except Exception:
             self.addVideoTime(data)
+
 
 YCSpider()

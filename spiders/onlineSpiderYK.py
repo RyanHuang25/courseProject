@@ -54,61 +54,56 @@ class YCSpider:
         :return:
         '''
         url = 'https://yk.myunedu.com/yunkai/web/study/userPracticeScheme/overview'
-        try:
-            res = requests.post(url,headers=self.headers)
-            userFosterSchemeTermCourseVOList = res.json()['data']['processList'][0]['userFosterSchemeTermCourseVOList']
-            for userFosterSchemeTermCourseVO in userFosterSchemeTermCourseVOList:
-                # print(userFosterSchemeTermCourseVO)
-                # if userFosterSchemeTermCourseVO['courseName'] == '法理学原理与实务':
-                print('*'*100)
-                # 获取到课程id
-                courseResourceId = userFosterSchemeTermCourseVO['courseResourceId']
-                print(f"课程名称： {userFosterSchemeTermCourseVO['courseName']}")
-                courseResourceEndTime = userFosterSchemeTermCourseVO['courseResourceEndTime']
-                courseResourceEndTime_str = time.mktime(time.strptime(courseResourceEndTime,"%Y-%m-%d %H:%M:%S"))
-                if courseResourceEndTime_str > time.time():
-                    self.info(courseResourceId)
-                else:
-                    print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
-            userFosterSchemeTermCourseVOListNotStart = res.json()['data']['processList'][1]['userFosterSchemeTermCourseVOList']
-            for userFosterSchemeTermCourseVO in userFosterSchemeTermCourseVOListNotStart:
-                print('*' * 100)
-                # 获取到课程id
-                courseResourceId = userFosterSchemeTermCourseVO['courseResourceId']
-                print(f"课程名称： {userFosterSchemeTermCourseVO['courseName']}")
-                courseResourceBeginTime = userFosterSchemeTermCourseVO['courseResourceBeginTime']
-                courseResourceBeginTime_str = time.mktime(time.strptime(courseResourceBeginTime, "%Y-%m-%d %H:%M:%S"))
-                if courseResourceBeginTime_str < time.time():
-                    self.info(courseResourceId)
-            pika.lpush('yc_account_file',json.dumps(self.account))
-        except:
-            self.overview()
+        res = requests.post(url,headers=self.headers)
+        userFosterSchemeTermCourseVOList = res.json()['data']['processList'][0]['userFosterSchemeTermCourseVOList']
+        for userFosterSchemeTermCourseVO in userFosterSchemeTermCourseVOList:
+            # print(userFosterSchemeTermCourseVO)
+            # if userFosterSchemeTermCourseVO['courseName'] == '法理学原理与实务':
+            print('*'*100)
+            # 获取到课程id
+            courseResourceId = userFosterSchemeTermCourseVO['courseResourceId']
+            print(f"课程名称： {userFosterSchemeTermCourseVO['courseName']}")
+            courseResourceEndTime = userFosterSchemeTermCourseVO['courseResourceEndTime']
+            courseResourceEndTime_str = time.mktime(time.strptime(courseResourceEndTime,"%Y-%m-%d %H:%M:%S"))
+            if courseResourceEndTime_str > time.time():
+                self.info(courseResourceId)
+            else:
+                print(f"课程：{userFosterSchemeTermCourseVO['courseName']} === {courseResourceEndTime} 已经到期了")
+        userFosterSchemeTermCourseVOListNotStart = res.json()['data']['processList'][1]['userFosterSchemeTermCourseVOList']
+        for userFosterSchemeTermCourseVO in userFosterSchemeTermCourseVOListNotStart:
+            print('*' * 100)
+            # 获取到课程id
+            courseResourceId = userFosterSchemeTermCourseVO['courseResourceId']
+            print(f"课程名称： {userFosterSchemeTermCourseVO['courseName']}")
+            courseResourceBeginTime = userFosterSchemeTermCourseVO['courseResourceBeginTime']
+            courseResourceBeginTime_str = time.mktime(time.strptime(courseResourceBeginTime, "%Y-%m-%d %H:%M:%S"))
+            if courseResourceBeginTime_str < time.time():
+                self.info(courseResourceId)
+        pika.lpush('yc_account_file',json.dumps(self.account))
+        return
 
     def info(self, courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/student/score/info'
         data = {
             "courseResourceId": courseResourceId
         }
-        try:
-            res = requests.post(url, headers=self.headers, data=json.dumps(data))
-            videoStudyInfoList = res.json()['data']['videoStudyInfoList']
-            self.notReadList = []
-            for videoStudyInfo in videoStudyInfoList:
-                if videoStudyInfo['studyProgress'] == 0:
-                    self.notReadList.append(videoStudyInfo['id'])
-                if videoStudyInfo['studyProgress'] == 100:
-                    print(f"视频 ===>>> {videoStudyInfo['videoName']} 已经被学习完了")
+        res = requests.post(url, headers=self.headers, data=json.dumps(data))
+        videoStudyInfoList = res.json()['data']['videoStudyInfoList']
+        self.notReadList = []
+        for videoStudyInfo in videoStudyInfoList:
+            if videoStudyInfo['studyProgress'] == 0:
+                self.notReadList.append(videoStudyInfo['id'])
+            if videoStudyInfo['studyProgress'] == 100:
+                print(f"视频 ===>>> {videoStudyInfo['videoName']} 已经被学习完了")
+            else:
+                id = videoStudyInfo['id']
+                lastStudyTime = videoStudyInfo['lastStudyTime']
+                if lastStudyTime:
+                    lastStudyTime = lastStudyTime
                 else:
-                    id = videoStudyInfo['id']
-                    lastStudyTime = videoStudyInfo['lastStudyTime']
-                    if lastStudyTime:
-                        lastStudyTime = lastStudyTime
-                    else:
-                        lastStudyTime = 0
-                    self.getVideoInfo(id, lastStudyTime)
-            self.task_list(courseResourceId)
-        except:
-            self.info(courseResourceId)
+                    lastStudyTime = 0
+                self.getVideoInfo(id, lastStudyTime)
+        self.task_list(courseResourceId)
 
     def task_list(self,courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/web/student/task/list'
