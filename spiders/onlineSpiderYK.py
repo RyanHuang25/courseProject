@@ -37,7 +37,7 @@ class YCSpider:
             "loginType": 2
         }
         print(f"正在登陆账号：{self.userName}")
-        res = requests.post(url,headers=headers,data=json.dumps(data))
+        res = requests.post(url,headers=headers,data=json.dumps(data),timeout=30)
         # print(res.json())
         self.token = res.json()['data']['token']
         self.headers = {
@@ -76,9 +76,10 @@ class YCSpider:
             courseResourceId = userFosterSchemeTermCourseVO['courseResourceId']
             print(f"课程名称： {userFosterSchemeTermCourseVO['courseName']}")
             courseResourceBeginTime = userFosterSchemeTermCourseVO['courseResourceBeginTime']
-            courseResourceBeginTime_str = time.mktime(time.strptime(courseResourceBeginTime, "%Y-%m-%d %H:%M:%S"))
-            if courseResourceBeginTime_str < time.time():
-                self.info(courseResourceId)
+            if courseResourceBeginTime:
+                courseResourceBeginTime_str = time.mktime(time.strptime(courseResourceBeginTime, "%Y-%m-%d %H:%M:%S"))
+                if courseResourceBeginTime_str < time.time():
+                    self.info(courseResourceId)
         pika.lpush('yc_account_file',json.dumps(self.account))
         return
 
