@@ -39,7 +39,11 @@ class YCSpider:
         print(f"正在登陆账号：{self.userName}")
         res = requests.post(url,headers=headers,data=json.dumps(data),timeout=30)
         # print(res.json())
-        self.token = res.json()['data']['token']
+        try:
+            self.token = res.json()['data']['token']
+        except:
+            print(res.json())
+            return
         self.headers = {
             "authorization": self.token,
             "Content-Type": "application/json;charset=UTF-8",
