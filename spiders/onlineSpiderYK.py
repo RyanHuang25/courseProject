@@ -104,6 +104,64 @@ class YCSpider:
                     lastStudyTime = 0
                 self.getVideoInfo(id, lastStudyTime)
         self.task_list(courseResourceId)
+        self.liveLessons(courseResourceId)
+
+    def liveLessons(self,courseResourceId):
+        url = 'https://yk.myunedu.com/yunkai/web/study/liveLessons'
+        data = {
+            "id": courseResourceId
+        }
+        try:
+            res = requests.post(url,headers=self.headers,data=json.dumps(data))
+            data_list = res.json()['data']
+            for data in data_list:
+                if data['liveStatusStr'] == '已结束':
+                    lastStudyTime = 0
+                    print(f'正在观看直播：{data["name"]}')
+                    id = data['id']
+                    videoId = data['videoId']
+                    duration = data['duration']
+                    channelId = data['channelId']
+                    sessionId = data['sessionId']
+                    self.Baijiayun(channelId,sessionId)
+                    url = 'https://yk.myunedu.com/yunkai/web/study/getBaijiayunPlayBackToken'
+                    data = {
+                        "channelId": channelId,
+                        "sessionId": sessionId
+                    }
+                    res = requests.post(url,headers=self.headers,data=json.dumps(data))
+
+                    while lastStudyTime != duration:
+                        # time.sleep()
+                        lastStudyTime += 10
+                        if lastStudyTime > duration:
+                            lastStudyTime = duration
+                        addVideoProgress_data = {
+                            "lastStudyTime": lastStudyTime,
+                            "videoId": id
+                        }
+                        self.addVideoProgress(addVideoProgress_data)
+                        addVideoTime_data = {
+                            "appType": 3,
+                            "lastStudyTime": lastStudyTime,
+                            "localCreateTime": int(time.time() * 1000),
+                            "studyTime": 10,
+                            "uploadType": 1,
+                            "videoId": id,
+                        }
+                        self.addVideoTime(addVideoTime_data)
+                        print(f"视频进度: {str(lastStudyTime / duration * 100)[:5]}%")
+        except:
+            self.liveLessons(courseResourceId)
+
+    def Baijiayun(self,channelId,sessionId):
+        url = 'https://yk.myunedu.com/yunkai/web/study/getBaijiayunChannelLiveStatus'
+        data = {"channelId":channelId}
+        res = requests.post(url,headers=self.headers,data=json.dumps(data))
+
+        url = 'https://yk.myunedu.com/yunkai/web/study/getBaijiayunPlayBackToken'
+        data = {"channelId":channelId,"sessionId":sessionId}
+        res = requests.post(url, headers=self.headers, data=json.dumps(data))
 
     def task_list(self,courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/web/student/task/list'
