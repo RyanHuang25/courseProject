@@ -20,4 +20,4 @@ for x in range(1,sheetOne.nrows):
         "passwd": "KF123456"
     }
     print(item)
-    pika.lpush('yc_account',json.dumps(item))
+    pika.lpush('yc_account_score',json.dumps(item))

@@ -80,8 +80,11 @@ class YCSpider:
                 courseResourceBeginTime_str = time.mktime(time.strptime(courseResourceBeginTime, "%Y-%m-%d %H:%M:%S"))
                 if courseResourceBeginTime_str < time.time():
                     self.info(courseResourceId)
-        pika.lpush('yc_account_file',json.dumps(self.account))
-        return
+        try:
+            pika.lpush('yc_account_file',json.dumps(self.account))
+            return
+        except:
+            return 
 
     def info(self, courseResourceId):
         url = 'https://yk.myunedu.com/yunkai/student/score/info'
