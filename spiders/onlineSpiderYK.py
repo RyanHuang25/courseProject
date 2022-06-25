@@ -224,7 +224,7 @@ class YCSpider:
             duration = res.json()['data']['duration']
 
             while lastStudyTime != duration:
-                time.sleep(2)
+                time.sleep(0.25)
                 lastStudyTime += 10
                 if lastStudyTime > duration:
                     lastStudyTime = duration
