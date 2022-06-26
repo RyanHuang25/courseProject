@@ -16,6 +16,7 @@ class FindScore:
         self.passwd = 'KF123456'
         self.userList = pika.lrange('yc_account_score',0,-1)
         for userName in self.userList:
+            print("="*100)
             self.userName = json.loads(userName)['account']
             self.startRequest()
 
@@ -37,7 +38,11 @@ class FindScore:
         try:
             res = requests.post(url, headers=headers, data=json.dumps(data))
             # print(res.json())
-            self.token = res.json()['data']['token']
+            try:
+                self.token = res.json()['data']['token']
+            except:
+                print(res.json())
+                return
             self.headers = {
                 "authorization": self.token,
                 "Content-Type": "application/json;charset=UTF-8",
@@ -77,13 +82,16 @@ class FindScore:
             "courseResourceId": courseResourceId
         }
         try:
-            res = requests.post(url, headers=self.headers, data=json.dumps(data))
-
+            res = requests.post(url, headers=self.headers, data=json.dumps(data),timeout=10)
+            try:
+                taskStudyTotalScore5 = res.json()['data']['taskStudyTotalScore5']
+            except:
+                taskStudyTotalScore5 = 0
             item = {
                 "形考成绩": res.json()['data']['courseScore'],
                 "直播成绩": res.json()['data']['liveStudyTotalScore'],
                 "视频成绩": res.json()['data']['videoStudyTotalScore'],
-                "测试成绩": res.json()['data']['taskStudyTotalScore5']
+                "测试成绩": taskStudyTotalScore5
             }
             print(item)
         except:
