@@ -226,9 +226,8 @@ class YCSpider:
                 print(f'正在答题：{record["charterName"]}...')
                 try:
                     self.start(task_data)
-                    time.sleep(2)
                 except Exception as e:
-                    print(e)
+                    pika.lpush('yc_account_file',json.dumps(self.account))
 
     def start(self,task_data):
         url = 'https://yk.myunedu.com/yunkai/web/examPaper/start'
