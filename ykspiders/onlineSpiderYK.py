@@ -214,24 +214,32 @@ class YCSpider:
         res = requests.post(url, headers=self.headers, data=json.dumps(data))
         recordList = res.json()['data']['recordList']
         for record in recordList:
-            if '线上作业' in record['taskName']:
-                if record['score']:
-                    print(f"测试 {record['charterName']} 已经完成，分数：{record['score']}")
-                else:
-                    task_data = {
-                        "id": record['examId'],
-                        "subjectId": record['subjectId'],
-                        "taskId": record['taskId']
-                    }
-                    print(f'正在答题：{record["charterName"]}...')
-                    try:
-                        self.start(task_data)
-                    except Exception as e:
-                        print(e)
+            # if '线上作业' in record['taskName']:
+            if record['score']:
+                print(f"测试 {record['charterName']} 已经完成，分数：{record['score']}")
+            else:
+                task_data = {
+                    "id": record['examId'],
+                    "subjectId": record['subjectId'],
+                    "taskId": record['taskId']
+                }
+                print(f'正在答题：{record["charterName"]}...')
+                try:
+                    self.start(task_data)
+                    time.sleep(2)
+                except Exception as e:
+                    print(e)
 
     def start(self,task_data):
         url = 'https://yk.myunedu.com/yunkai/web/examPaper/start'
-        res = requests.post(url, headers=self.headers, data=json.dumps(task_data),timeout=30)
+        headers = {
+            "authorization": self.token,
+            "Accept": "application/json, text/plain, */*",
+            "Content-Type": "application/json;charset=UTF-8",
+            "Referer": "https://yk.myunedu.com/yunkaiExamPC/",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36"
+        }
+        res = requests.post(url, headers=headers, data=json.dumps(task_data),timeout=30)
         testUserId = res.json()['data']['testUserId']
         questionAnswers = []
         groups = res.json()['data']['groups']
