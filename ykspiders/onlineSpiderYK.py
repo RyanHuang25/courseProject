@@ -228,7 +228,9 @@ class YCSpider:
                     self.start(task_data)
                 except Exception as e:
                     print(e)
-                    pika.lpush('yc_account_file',json.dumps({'account': self.userName}))
+                    if 'answer' in str(e):
+                        print('====>>>> 答题失败 <<<<===')
+                        pika.lpush('yc_account_file',json.dumps({'account': self.userName}))
 
     def start(self,task_data):
         url = 'https://yk.myunedu.com/yunkai/web/examPaper/start'
