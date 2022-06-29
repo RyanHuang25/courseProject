@@ -10,17 +10,24 @@
 
 import requests,json,time,redis
 
-pika = redis.Redis(host='47.108.199.19',port=8379,password='spider666.',db=4)
-
 class YCSpider:
 
     def __init__(self):
+        self.pika = redis.Redis(host='47.108.199.19', port=8379, password='spider666.', db=4)
         self.passwd = 'KF123456'
         while True:
             print('='*100)
-            self.account = pika.rpop('yc_account')
-            self.userName = json.loads(self.account)['account']
-            self.login()
+            try:
+                self.account = self.pika.rpop('yc_account_file')
+                self.userName = json.loads(self.account)['account']
+                self.login()
+            except Exception as e:
+                if 'ConnectionError' in str(e):
+                    self.pika = redis.Redis(host='47.108.199.19',port=8379,password='spider666.',db=4)
+                else:
+                    print(e)
+                    break
+
 
     def login(self):
         url = 'https://yk.myunedu.com/yunkai/sys/identification/login'
@@ -85,7 +92,7 @@ class YCSpider:
                 if courseResourceBeginTime_str < time.time():
                     self.info(courseResourceId)
         try:
-            pika.lpush('yc_account_file',json.dumps(self.account))
+            self.pika.lpush('yc_account_file',json.dumps(self.account))
             return
         except:
             return 
@@ -230,7 +237,7 @@ class YCSpider:
                     print(e)
                     if 'answer' in str(e):
                         print('====>>>> 答题失败 <<<<===')
-                        pika.lpush('yc_account_file',json.dumps({'account': self.userName}))
+                        self.pika.lpush('yc_account_file',json.dumps({'account': self.userName}))
 
     def start(self,task_data):
         url = 'https://yk.myunedu.com/yunkai/web/examPaper/start'
