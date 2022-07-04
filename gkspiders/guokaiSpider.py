@@ -267,6 +267,11 @@ class GuokaiSpider:
         return sevenLocation,cookies
 
     def modules(self,courseUrl):
+        '''
+        或许课程的所有章节，根据章节的id，可以获取到每个章节下面要学习的东西
+        :param courseUrl:
+        :return:
+        '''
         courseId = courseUrl[-19:-8]
         ngUrl,couseCookies = self.content(courseUrl)
         url = f'https://lms.ouchn.cn/api/courses/{courseId}/modules'
@@ -276,13 +281,43 @@ class GuokaiSpider:
             "Host": "lms.ouchn.cn"
         }
         res = requests.get(url,headers=headers,cookies=couseCookies,allow_redirects=False,timeout=30)
+        # 获取到已经学习的视频和测试题id集合
+        self.myCompleteness(courseId,couseCookies,ngUrl)
         modules = res.json()['modules']
         for module in modules:
+            print(module)
             id = module['id']
             self.allActivities(courseId,id,couseCookies)
-            break
+
+    def myCompleteness(self,courseId,couseCookies,ngUrl):
+        '''
+        获取已经完成学习的视频和测试题
+        :param courseId:
+        :return:
+        '''
+        url = f'https://lms.ouchn.cn/api/course/{courseId}/my-completeness'
+        headers = {
+            "authority": "lms.ouchn.cn",
+            "method": "GET",
+            "path": f"/api/course/{courseId}/my-completeness",
+            "scheme": "https",
+            "accept": "application/json, text/plain, */*",
+            "referer": ngUrl,
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url,headers=headers,cookies=couseCookies,allow_redirects=False,timeout=30)
+        self.exam_activity_complete = res.json()['completed_result']['completed']['exam_activity']
+        self.learning_activity_complete = res.json()['completed_result']['completed']['learning_activity']
+
 
     def allActivities(self,courseId,id,couseCookies):
+        '''
+        处理对应章节的测试，学习视频等，获取处理这些对应的参数
+        :param courseId:
+        :param id:
+        :param couseCookies:
+        :return:
+        '''
         url = f'https://lms.ouchn.cn/api/course/{courseId}/all-activities?module_ids=[{id}]&activity_types=learning_activities,exams,classrooms,live_records,rollcalls&no-loading-animation=true'
         headers = {
             "authority": "lms.ouchn.cn",
@@ -296,8 +331,51 @@ class GuokaiSpider:
         for learning_activity in learning_activities:
             if learning_activity['type'] == "page":
                 # 学习文本
+                pageId = learning_activity['id']
+                if pageId in self.learning_activity_complete:
+                    print(f"{learning_activity['title']} ===>>> 已经被学习过了")
+                    continue
+                self.activitiesRead(pageId,courseId,couseCookies)
+            elif learning_activity['type'] == "online_video":
+                # 视频
                 pass
         # 测试
+        exams = res.json()['exams']
+        for exam in exams:
+            pass
+
+    def activitiesRead(self,pageId,courseId,couseCookies):
+        '''
+        学习文本
+        :param courseId:
+        :param couseCookies:
+        :return:
+        '''
+        url = f'https://lms.ouchn.cn/api/course/activities-read/{pageId}'
+        headers = {
+            "Content-Type": "application/json",
+            "Referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.post(url,headers=headers,data=json.dumps({}),cookies=couseCookies,allow_redirects=False,timeout=30)
+        print(f"文本：{res.json()['id']} ===>>> {res.json()['last_visited_at']} 正在学习")
+
+    def activitiesReadVideo(self,courseId,couseCookies):
+        '''
+        学习视频，对视频连接发起请求
+        :return:
+        '''
+        url = 'https://lms.ouchn.cn/api/course/activities-read/40000299206'
+        headers = {
+            "authority": 'lms.ouchn.cn',
+            "method": "POST",
+            "path": "/api/course/activities-read/40000299206",
+            "scheme": "https",
+            "referer": "https://lms.ouchn.cn/course/40000000809/learning-activity/full-screen",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.post(url,headers=headers,data=json.dumps({}),cookies=couseCookies,allow_redirects=False,timeout=30)
+        print(f"视频：{res.json()['id']} ===>>> {res.json()['last_visited_at']} 正在学习")
 
     def notes(self):
         '''
