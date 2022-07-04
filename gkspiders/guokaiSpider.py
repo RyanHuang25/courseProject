@@ -309,7 +309,6 @@ class GuokaiSpider:
         self.exam_activity_complete = res.json()['completed_result']['completed']['exam_activity']
         self.learning_activity_complete = res.json()['completed_result']['completed']['learning_activity']
 
-
     def allActivities(self,courseId,id,couseCookies):
         '''
         处理对应章节的测试，学习视频等，获取处理这些对应的参数
@@ -371,22 +370,31 @@ class GuokaiSpider:
             "method": "POST",
             "path": "/api/course/activities-read/40000299206",
             "scheme": "https",
-            "referer": "https://lms.ouchn.cn/course/40000000809/learning-activity/full-screen",
+            "referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
         }
         res = requests.post(url,headers=headers,data=json.dumps({}),cookies=couseCookies,allow_redirects=False,timeout=30)
         print(f"视频：{res.json()['id']} ===>>> {res.json()['last_visited_at']} 正在学习")
 
-    def notes(self):
+    def onLineVideo(self,courseId):
         '''
-        请求观看的视频，并且模拟观看
+        模拟观看视频
         :return:
         '''
-        url = 'https://lms.ouchn.cn/api/notes'
-        params = {
-            "course_id": "",
-            "activity_id": "",
-            "target_id": ""
+        end = 0
+        start = 0
+        url = 'https://lms.ouchn.cn/api/course/activities-read/40000299167'
+        headers = {
+            "authority": "lms.ouchn.cn",
+            "method": "POST",
+            "path": "/api/course/activities-read/40000299167",
+            "scheme": "https",
+            "referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        data = {
+            "end": end,
+            "start": start
         }
 
 if __name__ == '__main__':
