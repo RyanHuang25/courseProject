@@ -10,24 +10,26 @@
 import requests,pytesseract,execjs,time,redis,json
 from PIL import Image
 from lxml import etree
+import time
 
 pika = redis.Redis(host='47.108.199.19',port=8379,db=4,password='spider666.')
 
 class GuokaiSpider:
 
     def __init__(self):
-        # self.userName = '2251001404593'
-        # self.pwd = 'Ouchn@2021'
-        # self.headers = {
-        #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
-        #     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-        # }
+        self.userName = '2251001404593'
+        self.pwd = 'Ouchn@2021'
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        }
         # goto,SunQueryParamsString,validateCode = self.startRequest()
         # oauth2Url = self.loginPost(goto,SunQueryParamsString,validateCode)
         # codeUrl = self.oauth2(oauth2Url)
         # indexUrl = self.indexCode(codeUrl)
         # pika.lpush('guokai_cookie',json.dumps(self.cookie))
         self.cookie = json.loads(pika.lrange('guokai_cookie',0,1)[0])
+        self.videoInfo = {}
         self.learningPC()
 
     def startRequest(self):
@@ -337,7 +339,12 @@ class GuokaiSpider:
                 self.activitiesRead(pageId,courseId,couseCookies)
             elif learning_activity['type'] == "online_video":
                 # 视频
-                pass
+                videoId = learning_activity['id']
+                if videoId in self.learning_activity_complete:
+                    print(f"{learning_activity['title']} ===>>> 已经被学习过了")
+                    continue
+                print(f"{learning_activity['title']} ===>>> 正在学习视频：{videoId}")
+                self.activitiesReadVideo(videoId,courseId,couseCookies)
         # 测试
         exams = res.json()['exams']
         for exam in exams:
@@ -359,43 +366,126 @@ class GuokaiSpider:
         res = requests.post(url,headers=headers,data=json.dumps({}),cookies=couseCookies,allow_redirects=False,timeout=30)
         print(f"文本：{res.json()['id']} ===>>> {res.json()['last_visited_at']} 正在学习")
 
-    def activitiesReadVideo(self,courseId,couseCookies):
+    def activitiesGetDurtion(self,videoId,couseCookies):
+        '''
+        获取视频的总长度
+        :param videoId:
+        :param couseCookies:
+        :return:
+        '''
+        url = f'https://lms.ouchn.cn/api/activities/{videoId}'
+        headers = {
+            "authority": "lms.ouchn.cn",
+            "method": "GET",
+            "path": f"/api/activities/{videoId}",
+            "scheme": "https",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url,headers=headers,cookies=couseCookies,allow_redirects=False,timeout=30)
+        duration = res.json()['uploads'][0]['videos'][0]['duration']
+        duration = int(duration) + 1
+        return duration
+
+    def activitiesReadVideo(self,videoId,courseId,couseCookies):
         '''
         学习视频，对视频连接发起请求
         :return:
         '''
-        url = 'https://lms.ouchn.cn/api/course/activities-read/40000299206'
+        url = f'https://lms.ouchn.cn/api/course/activities-read/{videoId}'
         headers = {
             "authority": 'lms.ouchn.cn',
             "method": "POST",
-            "path": "/api/course/activities-read/40000299206",
+            "path": f"/api/course/activities-read/{videoId}",
             "scheme": "https",
             "referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
         }
         res = requests.post(url,headers=headers,data=json.dumps({}),cookies=couseCookies,allow_redirects=False,timeout=30)
-        print(f"视频：{res.json()['id']} ===>>> {res.json()['last_visited_at']} 正在学习")
+        # print(f"视频：{res.json()['activity_id']} ===>>> {res.json()['last_visited_at']} 正在学习")
+        try:
+            end = res.json()['data']['end']
+        except:
+            end = 0
+        self.onLineVideo(videoId,courseId,couseCookies,end)
 
-    def onLineVideo(self,courseId):
+    def onLineVideo(self,videoId,courseId,couseCookies,end):
         '''
         模拟观看视频
         :return:
         '''
-        end = 0
-        start = 0
-        url = 'https://lms.ouchn.cn/api/course/activities-read/40000299167'
+        durtion = self.activitiesGetDurtion(videoId,couseCookies)
+        print(f'视频总长度: {durtion},已经观看： {end}')
+        while durtion>end:
+            # time.sleep(10)
+            start = end
+            end += 60
+            if end > durtion:
+                end = durtion
+            url = f'https://lms.ouchn.cn/api/course/activities-read/{videoId}'
+            headers = {
+                "authority": "lms.ouchn.cn",
+                "method": "POST",
+                "path": f"/api/course/activities-read/{videoId}",
+                "scheme": "https",
+                "Content-Type": "application/json",
+                "referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
+                "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+            }
+            data = {
+                "end": end,
+                "start": start
+            }
+            print(data)
+            # self.onlineVideoRequest(end, start, couseCookies)
+            print(url)
+            res = requests.post(url,headers=headers,data=json.dumps(data),allow_redirects=False,timeout=30,cookies=couseCookies)
+            print(res.json())
+            # print(f"视频进度：{str(res.json()['data']['end']/durtion)[:5]}/%")
+            print(f"视频进度：{str(end / durtion * 100)[:5]}%")
+
+    def onlineVideoRequest(self,end,start,couseCookies):
+        url = 'https://lms.ouchn.cn/statistics/api/online-videos'
         headers = {
             "authority": "lms.ouchn.cn",
             "method": "POST",
-            "path": "/api/course/activities-read/40000299167",
+            "path": "/statistics/api/online-videos",
             "scheme": "https",
-            "referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+            "referer": f"https://lms.ouchn.cn/course/40000000809/learning-activity/full-screen",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
         }
         data = {
-            "end": end,
-            "start": start
+            "user_id":"40000654410",
+            "org_id":"40000000001",
+            "course_id":"40000000809",
+            "module_id":"40000037163",
+            "activity_id":"40000299118",
+            "upload_id":"1552752",
+            "reply_id": "",
+            "comment_id": "",
+            "forum_type":"",
+            "action_type":"play",
+            "is_teacher": False,
+            "is_student":True,
+            "ts": int(time.time()*1000),
+            "user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
+            "meeting_type":"online_video",
+            "start_at":start,
+            "end_at": end,
+            "duration":"60",
+            "master_course_id":"12195",
+            "org_name":"四川开放大学",
+            "org_code":"510",
+            "user_no":"2251001404593",
+            "user_name":"范晓军",
+            "course_code":"202203-01206510",
+            "course_name":"汽车机械基础",
+            "dep_id":"40000000066",
+            "dep_name":"四川省级机关电大高新教学点",
+            "dep_code":"5100205"
         }
+        res = requests.post(url,headers=headers,data=json.dumps(data),cookies=couseCookies,allow_redirects=False,timeout=30)
+
+
 
 if __name__ == '__main__':
     GuokaiSpider()
