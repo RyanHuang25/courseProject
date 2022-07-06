@@ -350,6 +350,72 @@ class GuokaiSpider:
         for exam in exams:
             pass
 
+    def examSubmissions(self,examId,couseCookies):
+        '''
+        获取答题的成绩列表，获取到每次答题的id和分数
+        :param examId:
+        :param couseCookies:
+        :return:
+        '''
+        url = f'https://lms.ouchn.cn/api/exams/{examId}/submissions'
+        headers = {
+            "authority": "lms.ouchn.cn",
+            "method": "GET",
+            "path": f"/api/exams/{examId}/submissions",
+            "scheme": "https",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url,headers=headers,cookies=couseCookies,allow_redirects=False,timeout=30)
+        submission = res.json()['submissions'][-1]
+        score = submission['score']
+        submissionId = submission['id']
+
+    def examWrite(self,examId,submissionId,couseCookies):
+        '''
+        获取题目，将正确的答案写入到mysql
+        :return:
+        '''
+        examUrl = f'https://lms.ouchn.cn/api/exams/{examId}/submissions/{submissionId}'
+        examHeaders = {
+            "authority": 'lms.ouchn.cn',
+            "method": "GET",
+            "path": f"/api/exams/{examId}/submissions/{submissionId}",
+            "scheme": "https",
+            "referer": f"https://lms.ouchn.cn/exam/{examId}/subjects",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.get(examUrl,headers=examHeaders,cookies=couseCookies,allow_redirects=False,timeout=30)
+        # 题目的基本信息，选项等
+        subjects_data = res.json()['subjects_data']['subjects']
+        # 正确答案输出，错误答案没有
+        submission_data = res.json()['submission_data']['subjects']
+        # 每道题对应的基本信息，根据题的id进行对应
+        submission_score_data = res.json()['submission_score_data']
+        for i in range(len(submission_score_data.keys())):
+            if submission_score_data[submission_score_data.keys[i]]:
+                subject = subjects_data[i]
+                submission = submission_data[i]
+
+                testChoice = {}
+                options = subject['options']
+                for option in options:
+                    testChoice[option['id']] = option['content'].replace('<p>','').replace('</p>','').replace('<span>','').replace('</span>','')
+
+                testId = submission_score_data.keys[i]
+                testName = subject['description'].replace('<p>','').replace('</p>','')
+                testResult = submission['answer_option_ids']
+
+                item = {
+                    "examId": examId,
+                    "testId": testId,
+                    "testName": testName,
+                    "testResult": testResult,
+                    "testChoice": testChoice
+                }
+                print(item)
+
+
+
     def activitiesRead(self,pageId,courseId,couseCookies):
         '''
         学习文本
