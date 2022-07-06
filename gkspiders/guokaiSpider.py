@@ -435,55 +435,10 @@ class GuokaiSpider:
                 "end": end,
                 "start": start
             }
-            print(data)
-            # self.onlineVideoRequest(end, start, couseCookies)
-            print(url)
             res = requests.post(url,headers=headers,data=json.dumps(data),allow_redirects=False,timeout=30,cookies=couseCookies)
             print(res.json())
             # print(f"视频进度：{str(res.json()['data']['end']/durtion)[:5]}/%")
             print(f"视频进度：{str(end / durtion * 100)[:5]}%")
-
-    def onlineVideoRequest(self,end,start,couseCookies):
-        url = 'https://lms.ouchn.cn/statistics/api/online-videos'
-        headers = {
-            "authority": "lms.ouchn.cn",
-            "method": "POST",
-            "path": "/statistics/api/online-videos",
-            "scheme": "https",
-            "referer": f"https://lms.ouchn.cn/course/40000000809/learning-activity/full-screen",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
-        }
-        data = {
-            "user_id":"40000654410",
-            "org_id":"40000000001",
-            "course_id":"40000000809",
-            "module_id":"40000037163",
-            "activity_id":"40000299118",
-            "upload_id":"1552752",
-            "reply_id": "",
-            "comment_id": "",
-            "forum_type":"",
-            "action_type":"play",
-            "is_teacher": False,
-            "is_student":True,
-            "ts": int(time.time()*1000),
-            "user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
-            "meeting_type":"online_video",
-            "start_at":start,
-            "end_at": end,
-            "duration":"60",
-            "master_course_id":"12195",
-            "org_name":"四川开放大学",
-            "org_code":"510",
-            "user_no":"2251001404593",
-            "user_name":"范晓军",
-            "course_code":"202203-01206510",
-            "course_name":"汽车机械基础",
-            "dep_id":"40000000066",
-            "dep_name":"四川省级机关电大高新教学点",
-            "dep_code":"5100205"
-        }
-        res = requests.post(url,headers=headers,data=json.dumps(data),cookies=couseCookies,allow_redirects=False,timeout=30)
 
 
 
