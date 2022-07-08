@@ -10,9 +10,11 @@
 import requests,pytesseract,execjs,time,redis,json
 from PIL import Image
 from lxml import etree
-import time
+import time,hashlib,pymysql
 
 pika = redis.Redis(host='47.108.199.19',port=8379,db=4,password='spider666.')
+conn = pymysql.connect(host='rm-bp10ml3j7a2t88hv03o.mysql.rds.aliyuncs.com',user='roothuang',password='huang123@',database='huang',charset='utf8')
+cursor = conn.cursor()
 
 class GuokaiSpider:
 
@@ -345,6 +347,13 @@ class GuokaiSpider:
                     continue
                 print(f"{learning_activity['title']} ===>>> 正在学习视频：{videoId}")
                 self.activitiesReadVideo(videoId,courseId,couseCookies)
+            elif learning_activity['type'] == "material":
+                # 文档
+                fileId = learning_activity['id']
+                if fileId in self.learning_activity_complete:
+                    print(f"{learning_activity['title']} ===>>> 已经被学习过了")
+                    continue
+
         # 测试
         exams = res.json()['exams']
         for exam in exams:
@@ -369,6 +378,8 @@ class GuokaiSpider:
         submission = res.json()['submissions'][-1]
         score = submission['score']
         submissionId = submission['id']
+        if score == "100":
+            self.examWrite(examId,submissionId,couseCookies)
 
     def examWrite(self,examId,submissionId,couseCookies):
         '''
@@ -412,9 +423,39 @@ class GuokaiSpider:
                     "testResult": testResult,
                     "testChoice": testChoice
                 }
-                print(item)
+                md5 = self.get_dict_md5(item)
+                sql = f'insert into t_guokai_exams (examId,testId,testName,testResult,testChoice,md5) values ("{examId}","{testId}","{testName}","{testResult}","{testChoice}","{md5}")'
+                cursor.execute(sql)
 
+    def fileRead(self,fileId,courseId,couseCookies):
+        url = f"https://lms.ouchn.cn/api/activities/{fileId}"
+        headers = {
+            "authority": "lms.ouchn.cn",
+            "method": "GET",
+            "path": f"/api/activities/{fileId}",
+            "scheme": "https",
+            "referer": f"https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url,headers=headers,cookies=couseCookies,allow_redirects=False,timeout=30)
+        uploads = res.json()['uploads']
+        for upload in uploads:
+            reference_id = upload['reference_id']
+            print(f'正在阅读文件： {upload["name"]}')
 
+    def getFileUrl(self,reference_id,courseId,couseCookies):
+        url = f'https://lms.ouchn.cn/api/uploads/reference/document/{reference_id}/url?preview=true'
+        headers = {
+            "authority": "lms.ouchn.cn",
+            "method": "GET",
+            "path": f"/api/uploads/reference/document/{reference_id}/url?preview=true",
+            "scheme": "https",
+            "referer": f'https://lms.ouchn.cn/course/{courseId}/learning-activity/full-screen',
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url,headers=headers,cookies=couseCookies,allow_redirects=False,timeout=30)
+        fileUrl = res.json()['url']
+        print(fileUrl)
 
     def activitiesRead(self,pageId,courseId,couseCookies):
         '''
@@ -506,7 +547,24 @@ class GuokaiSpider:
             # print(f"视频进度：{str(res.json()['data']['end']/durtion)[:5]}/%")
             print(f"视频进度：{str(end / durtion * 100)[:5]}%")
 
-
+    def get_dict_md5(self,dic):
+        '''
+        取所有字典的值生成MD5
+        :param dic: 传入字典
+        :return:
+        '''
+        url = ''
+        for value in dic.values():
+            url += str(value)
+        if isinstance(url, list) or isinstance(url, tuple) or isinstance(url, str):
+            url = str(url)
+        m = hashlib.md5()
+        if isinstance(url, str):
+            url = url.encode('utf-8')
+        m.update(url)
+        return m.hexdigest()
 
 if __name__ == '__main__':
     GuokaiSpider()
+    cursor.close()
+    conn.close()
